@@ -18,8 +18,8 @@ int main(int argc, char* argv[]) {
         
     }
     
-    TagTree t = TagTree();
-    t.constructTree();
-    t.analyzeTree();
+    TagTree t = TagGraph();
+    t.constructGraph();
+    t.analyzeGraph();
     return 0;
 }

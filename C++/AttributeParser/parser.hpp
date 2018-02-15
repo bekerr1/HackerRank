@@ -10,17 +10,14 @@
 
 #include <stdio.h>
 
-struct Attribute {
-    std::string name;
-    std::string value;
-};
+
 struct TagMeta {
-    std::string name;
-    std::vector<Attribute> attributes;
+    string name;
+    map<string, string> attributes;
 };
 struct TagNode {
     TagMeta info;
-    std::vector<TagNode *> children;
+    map<string, TagNode *> children;
 };
 
 struct Parser {
@@ -33,8 +30,14 @@ struct Parser {
     const char VAL = '=';
     const char DISCARD = '\"';
     
-    Attribute newAttribute(std::iostream&);
+private:
+    void newAttribute(std::iostream&);
     TagNode* parseLine(std::string);
+    parseQuery(map<string, TagNode*>, string);
+    tagExists(map<string, TagNode*>, string);
+    tagExists(map<string, string>, string);
+    extractTag(const string, size_t&, size_t&, string&);
+    attributeTag(const string, size_t&, size_t&, string&);
 };
 
 #endif /* parser_hpp */

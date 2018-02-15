@@ -11,15 +11,15 @@
 #include <stdio.h>
 #include "parser.hpp"
 
-class TagTree {
+class TagGraph {
 public:
-    void constructTree();
-    void analyzeTree();
-    TagNode* produceLeaders(int, TagNode*, int&);
-private:
-    std::vector<TagNode*> leaders;
-    Parser p;
+    void constructGraph(istream&);
+    void analyzeGraph();
     
+private:
+    map<string, TagNode*> leaders;
+    Parser p;
+    TagNode* produceLeaders(int, TagNode*, int&, istream&);
     void analyzeNode(TagNode*, TagNode*);
 };
 

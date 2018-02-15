@@ -16,38 +16,61 @@
 
 using namespace std;
 
-void TagTree::constructTree() {
+TagNode* TagGraph::produceLeaders(int depth, TagNode* node, int &line_num, istream &source) {
+    if (node == nullptr) { // new leader
+        node = new TagNode();
+    }
+    string line;
+    getline(source, line);
+    TagNode* next = p.parseLine(line);
+    line_num++;
+    if (next == nullptr) {
+        return nullptr;
+    } else {
+        node = next;
+        depth++;
+        TagNode* prev;
+        while ((prev = produceLeaders(depth, nullptr, line_num, source)) != nullptr) {
+            node->children[prev->info.name] = prev;
+        }
+        return node;
+    }
+}
+
+void TagGraph::constructGraph(istream &source) {
     int line, lines, queries;
-    cin >> lines;
-    cin >> queries;
-    //cout << "Constructing tree with " << lines << " lines and " << queries << " queries!" << "-- starting line: " << line << endl;
+    source >> lines;
+    source >> queries;
     line = 0;
-    cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+    source.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
     while (line < lines) {
         TagNode *leader = new TagNode();
-        cout << "Starting..." << endl;
-        leader = produceLeaders(0, nullptr, line);
+        leader = produceLeaders(0, nullptr, line, source);
         if (leader) {
-            leaders.push_back(leader);
+            leaders[leader->info.name] = leader;
         }
+    }
+    string query;
+    for (int i = 0; i < queries; i++) {
+        getline(cin, query);
+        cout << p.parseQuery(leaders, query) << endl;
     }
 }
 
 // print out text representation of graph
-void TagTree::analyzeTree() {
-    cout << "Analyzing Tree: " << endl;
+void TagGraph::analyzeGraph() {
+    cout << "Analyzing Graph: " << endl;
     cout << "There are " << leaders.size() << " top level leaders." << endl;
-    for (vector<TagNode*>::iterator it = leaders.begin();
+    for (map<string, TagNode*>::iterator it = leaders.begin();
          it != leaders.end();
          ++it) {
-        cout << "Leader: " << (*it)->info.name << ", and size: " << (*it)->children.size() << endl;
+        cout << "Leader: " << it->first << ", and size: " << it->second->children.size() << endl;
         cout << endl;
-        analyzeNode(*it, nullptr);
+        analyzeNode(it->second, nullptr);
     }
 }
 
-void TagTree::analyzeNode(TagNode *n, TagNode *p) {
-    
+void TagGraph::analyzeNode(TagNode *n, TagNode *p) {
     string parentData;
     if (p != nullptr) {
         parentData = ", parent name: " + p->info.name;
@@ -55,41 +78,15 @@ void TagTree::analyzeNode(TagNode *n, TagNode *p) {
         parentData = ", NO PARENT";
     }
     cout << "Node has name: " << n->info.name << parentData << " and attributes: " << endl;
-    for (vector<Attribute>::iterator vitr = n->info.attributes.begin();
-         vitr != n->info.attributes.end();
-         ++vitr) {
-        cout << "Attribute -- Name: " << vitr->name << ", value: " << vitr->value << endl;
+    for (map<string, string>::iterator mitr = n->info.attributes.begin();
+         mitr != n->info.attributes.end();
+         ++mitr) {
+        cout << "Attribute -- Name: " << mitr->first << ", value: " << mitr->second << endl;
     }
     cout << endl;
-    for (vector<TagNode*>::iterator itr = n->children.begin();
+    for (map<string, TagNode *>::iterator itr = n->children.begin();
          itr != n->children.end();
          ++itr) {
-        analyzeNode(*itr, n);
-        
-    }
-}
-
-TagNode* TagTree::produceLeaders(int depth, TagNode* node, int &line_num) {
-    cout << "Leader: depth- " << depth << ", linenum- " << line_num << endl;
-    if (node == nullptr) { // new leader
-        node = new TagNode();
-    }
-    string line;
-    getline(cin, line);
-    TagNode* next = p.parseLine(line);
-    line_num++;
-    if (next == nullptr) {
-        //return produceLeaders(depth - 1, node, line_num);
-        cout << "Leaf" << endl;
-        return nullptr;
-    } else {
-        node = next;
-        depth++;
-        TagNode* prev;
-        while ((prev = produceLeaders(depth, nullptr, line_num)) != nullptr) {
-            cout << "Pushing on node at depth " << depth << endl;
-            node->children.push_back(prev);
-        }
-        return node;
+        analyzeNode(itr->second, n);
     }
 }

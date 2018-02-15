@@ -16,64 +16,32 @@
 
 using namespace std;
 
-Attribute Parser::newAttribute(iostream &stream) {
-    //cout << "New Attriute: " << endl;
-    char current;
-    Attribute attr;
-    while ((current = stream.get())) {
-        if (current == SEP) {
-            break;
-        } else {
-            attr.name += current;
-        }
-    }
-    stream.seekg(2, ios_base::cur); // skip ' = ' chars
-    while ((current = stream.get())) {
-        if (current == SEP || current == STOP) {
-            stream.putback(current);
-            break;
-        } else {
-            if (current != DISCARD) {
-                attr.value += current;
-            }
-        }
-    }
-    //cout << "Name: " << attr.name << " Value: " << attr.value << endl;
-    return attr;
-}
-
 TagNode* Parser::parseLine(string line) {
-    
-    //cout << "Parsing line: " << line << endl;
     TagNode *nn = new TagNode();
+    size_t next = 0;
+    size_t last = 0;
     stringstream st = stringstream(line);
     char cur;
     TagMeta meta;
     st.get(cur);
-    //cout << cur << endl;
     if (cur == START) {
         if (st.peek() == END) { // ending tag
-            cout << "End char hit!" << endl;
             return nullptr;
         } else { //tag name
-            while ((cur = st.get())) {
+            while (cur = st.get()) {
                 if (cur == SEP || cur == STOP) {
                     break;
                 }
-                //cout << cur;
                 meta.name += cur;
             }
-            //cout << endl;
             if (cur == STOP) {
-                //cout << "tag with no attributes" << endl;
                 nn->info = meta;
                 return nn;
             }
             while (true) {
-                meta.attributes.push_back(newAttribute(st));
+                newAttribute(meta.attributes, st);
                 if ((cur = st.peek()) == STOP) {
                     st.get(cur);
-                    //cout << "Stop char: " << cur << endl;
                     break;
                 } else {
                     st.get(cur);
@@ -84,3 +52,91 @@ TagNode* Parser::parseLine(string line) {
     nn->info = meta;
     return nn;
 }
+
+void Parser::newAttribute(iostream &stream) {
+    char current;
+    string name;
+    string value;
+    while (current = stream.get()) {
+        if (current == SEP) {
+            break;
+        } else {
+            name += current;
+        }
+    }
+    stream.seekg(2, ios_base::cur); // skip ' = ' chars
+    while (current = stream.get()) {
+        if (current == SEP || current == STOP) {
+            stream.putback(current);
+            break;
+        } else {
+            if (current != DISCARD) {
+                value += current;
+            }
+        }
+    }
+    attrs[name] = value;
+}
+
+string Parser::parseQuery(map<string, TagNode*> leaders, string query) {
+    size_t start, end;
+    string tag;
+    TagNode *current;
+    if (extractTag(query, start, end, tag) && tagExists(leaders, tag)) {
+        current = leaders[tag];
+        while (extractTag(query, start, end, tag)) {
+            if (tagExists(current->children, tag)) {
+                current = current->children[tag];
+            } else {
+                return "Not Found!";
+            }
+        }
+        if (tagExists(current->info.attributes, attributeTag(query, start, end, tag))) {
+            return current->info.attributes[tag];
+        } else {
+            return "Not Found!";
+        }
+    } else {
+        return "Not Found!";
+    }
+}
+
+bool Parser::tagExists(map<string, TagNode*> m, string tag) {
+    map<string, TagNode*>::const_iterator itr = m.find(tag);
+    if (itr != m.end()) {
+        return true;
+    } else {
+        return false;
+    }
+}
+
+bool Parser::tagExists(map<string, string> m, string tag) {
+    map<string, string>::const_iterator itr = m.find(tag);
+    if (itr != m.end()) {
+        return true;
+    } else {
+        return false;
+    }
+}
+
+bool Parser::extractTag(const string query, size_t &start, size_t &end, string &tag) {
+    if ((end = query.find(CHILD, start)) != string::npos) {
+        size_t sz = end - start;
+        tag = query.substr(start, sz);
+        start = end + 1;
+        return true;
+    } else if ((end = query.find(DATA, start)) != string::npos) {
+        size_t sz = end - start;
+        tag = query.substr(start, sz);
+        start = end + 1;
+        return true;
+    } else {
+        return false;
+    }
+}
+
+string Parser::attributeTag(const string query, size_t &start, size_t &end, string &tag) {
+    return query.substr(start);
+}
+
+
